@@ -26,7 +26,7 @@ namespace MotelListings.Controllers
         [HttpGet]
         public IEnumerable<WeatherForecast> Get()
         {
-            _logger.LogInformation("Accessed teh weather forecast")
+            _logger.LogInformation("Accessed the weather forecast");
             var rng = new Random();
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
