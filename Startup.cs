@@ -15,6 +15,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using MotelListings.Configurations;
+using MotelListings.IRepository;
+using MotelListings.Repository;
 
 namespace MotelListings
 {
@@ -38,11 +40,12 @@ namespace MotelListings
             });
 
             services.AddAutoMapper(typeof(MapperInitializer));
+            services.AddTransient<IUnitOfWork, UnitOfWork>();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "MotelListings", Version = "v1" });
             });
-            services.AddControllers();
+            services.AddControllers().AddNewtonsoftJson(op=> op.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
 
         }
 
@@ -67,6 +70,7 @@ namespace MotelListings
 
             app.UseEndpoints(endpoints =>
             {
+                
                 endpoints.MapControllers();
             });
         }
