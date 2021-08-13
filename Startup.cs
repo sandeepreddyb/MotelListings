@@ -17,6 +17,8 @@ using AutoMapper;
 using MotelListings.Configurations;
 using MotelListings.IRepository;
 using MotelListings.Repository;
+using Microsoft.AspNetCore.Identity;
+using MotelListings.Services;
 
 namespace MotelListings
 {
@@ -39,8 +41,13 @@ namespace MotelListings
                                                             .AllowAnyHeader());
             });
 
+            services.AddAuthentication();
+            services.ConfigureIdentity();
+            services.ConfigureJWT(Configuration);
+
             services.AddAutoMapper(typeof(MapperInitializer));
             services.AddTransient<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<IAuthManager, AuthManager>();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "MotelListings", Version = "v1" });
@@ -66,6 +73,7 @@ namespace MotelListings
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
