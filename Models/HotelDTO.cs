@@ -25,6 +25,10 @@ namespace MotelListings.Models
         
     }
 
+    public class UpdateHotelDTO : CreateHotelDTO
+    {
+
+    }
 
     public class HotelDTO : CreateHotelDTO
     {
