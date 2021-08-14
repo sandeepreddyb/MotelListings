@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MotelListings.Data;
 using MotelListings.IRepository;
@@ -53,7 +54,7 @@ namespace MotelListings.Controllers
         {
             try
             {
-                var hotel = await _unitOfWork.Hotels.Get(q => q.Id == id, new List<string> { "Country" });
+                var hotel = await _unitOfWork.Hotels.Get(q => q.Id == id, include: q => q.Include(x => x.Country));
                 return Ok(hotel);
             }
             catch (Exception ex)
@@ -152,7 +153,7 @@ namespace MotelListings.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error while deleting {nameof(DeleteHotel)}");
-                return StatusCode(500, "");
+                return StatusCode(500, "Submitted data is invalid");
 
             }
         }

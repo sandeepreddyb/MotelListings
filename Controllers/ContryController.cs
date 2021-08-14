@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MotelListings.Data;
 using MotelListings.IRepository;
@@ -30,21 +31,14 @@ namespace MotelListings.Controllers
         }
 
         [HttpGet]
+        //[ResponseCache(CacheProfileName = "120SecondsDuration")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetCountries()
+        public async Task<IActionResult> GetCountries([FromQuery] RequestParams requestParams)
         {
-            try
-            {
-                var countries = await _unitOfWork.Countries.GetAll();
-                var results = _mapper.Map<IList<CountryDTO>>(countries);
-                return Ok(results);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Something went wrong in the {nameof(GetCountries)}");
-                return StatusCode(500, "Internal server error . please try again later.");
-            }
+             var countries = await _unitOfWork.Countries.GetPagedList(requestParams);
+             var results = _mapper.Map<IList<CountryDTO>>(countries);
+             return Ok(results);
         }
 
         [HttpGet("{id:int}", Name = "GetCountry")]
@@ -54,7 +48,7 @@ namespace MotelListings.Controllers
         {
             try
             {
-                var country = await _unitOfWork.Countries.Get(q => q.Id == id, new List<string> { "Hotels"});
+                var country = await _unitOfWork.Countries.Get(q => q.Id == id, include: q => q.Include(x => x.Hotels));
                 var result = _mapper.Map<CountryDTO>(country);
                 return Ok(result);
             }
@@ -74,23 +68,14 @@ namespace MotelListings.Controllers
         {
             if (!ModelState.IsValid)
             {
-                _logger.LogInformation($"Invalid post attempt in {nameof(CreateCountry)}")
+                _logger.LogInformation($"Invalid post attempt in {nameof(CreateCountry)}");
                 return BadRequest(ModelState);
             }
-            try
-            {
-                var country = _mapper.Map<Country>(countryDTO);
-                await _unitOfWork.Countries.Insert(country);
-                await _unitOfWork.Save();
+            var country = _mapper.Map<Country>(countryDTO);
+            await _unitOfWork.Countries.Insert(country);
+            await _unitOfWork.Save();
 
-                return CreatedAtRoute("GetCountry", new { id = country.Id }, country);
-            }
-            catch (Exception ex)
-            {
-
-                _logger.LogError(ex, $"something went wrong in {nameof(CreateCountry)}");
-                return StatusCode(500, "Internal server . please try again later");
-            }
+            return CreatedAtRoute("GetCountry", new { id = country.Id }, country);
         }
 
         [Authorize]
@@ -105,25 +90,18 @@ namespace MotelListings.Controllers
                 _logger.LogInformation($"Invalidupdate attempt in {nameof(UpdateCountry)}");
                 return BadRequest(ModelState);
             }
-            try
+            
+            var country = await _unitOfWork.Countries.Get(p => p.Id == id);
+            if(country == null)
             {
-                var country = await _unitOfWork.Countries.Get(p => p.Id == id);
-                if(country == null)
-                {
-                    _logger.LogError($"Invalid update attempt in {nameof(UpdateCountry)}");
-                    return BadRequest("Data is Invalid");
-                }
-                _mapper.Map(countryDTO, country);
-                _unitOfWork.Countries.Update(country);
-                await _unitOfWork.Save();
+                _logger.LogError($"Invalid update attempt in {nameof(UpdateCountry)}");
+                return BadRequest("Data is Invalid");
+            }
+            _mapper.Map(countryDTO, country);
+            _unitOfWork.Countries.Update(country);
+            await _unitOfWork.Save();
 
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Invalid update attempt in {nameof(UpdateCountry)}");
-                return StatusCode(500, "Data is Invalid");
-            }
+            return NoContent();
         }
 
         [Authorize]
@@ -138,25 +116,17 @@ namespace MotelListings.Controllers
                 _logger.LogError($"Invalid Delete attempt in {nameof(DeleteCountry)}");
                 return BadRequest();
             }
-            try
+           
+            var country = await _unitOfWork.Countries.Get(p => p.Id == id);
+            if(country == null)
             {
-                var country = await _unitOfWork.Countries.Get(p => p.Id == id);
-                if(country == null)
-                {
-                    _logger.LogError($"Invalid Delete attempt in {nameof(DeleteCountry)}");
-                    return BadRequest("Submitted data is invalid");
-                }
-                await _unitOfWork.Countries.Delete(id);
-                await _unitOfWork.Save();
+                _logger.LogError($"Invalid Delete attempt in {nameof(DeleteCountry)}");
+                return BadRequest("Submitted data is invalid");
+            }
+            await _unitOfWork.Countries.Delete(id);
+            await _unitOfWork.Save();
 
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error while deleting {nameof(DeleteCountry)}");
-                return StatusCode(500, "");
-                
-            }
+            return NoContent();
         }
     }
 }

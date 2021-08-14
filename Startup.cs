@@ -19,6 +19,7 @@ using MotelListings.IRepository;
 using MotelListings.Repository;
 using Microsoft.AspNetCore.Identity;
 using MotelListings.Services;
+using AspNetCoreRateLimit;
 
 namespace MotelListings
 {
@@ -41,6 +42,11 @@ namespace MotelListings
                                                             .AllowAnyHeader());
             });
 
+            services.AddMemoryCache();
+
+            services.ConfigureRateLimiting();
+            services.AddHttpContextAccessor();
+            services.ConfigureHttpCacheHeaders();
             services.AddAuthentication();
             services.ConfigureIdentity();
             services.ConfigureJWT(Configuration);
@@ -52,7 +58,12 @@ namespace MotelListings
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "MotelListings", Version = "v1" });
             });
-            services.AddControllers().AddNewtonsoftJson(op=> op.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
+            services.AddControllers(config => {
+                config.CacheProfiles.Add("120SecondsDuration", new CacheProfile
+                {
+                    Duration = 120
+                });
+            }).AddNewtonsoftJson(op=> op.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
 
         }
 
@@ -67,10 +78,16 @@ namespace MotelListings
             app.UseSwagger();
             app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "MotelListings v1"));
 
+            app.ConfigureExceptionHandler();
+
             app.UseHttpsRedirection();
 
             app.UseCors("AllowAll");
 
+            app.UseResponseCaching();
+            app.UseHttpCacheHeaders();
+
+            app.UseIpRateLimiting();
             app.UseRouting();
 
             app.UseAuthentication();
